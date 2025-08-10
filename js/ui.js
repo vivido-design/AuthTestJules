@@ -19,6 +19,15 @@ function showStatusMessage(message, isError = false) {
     setTimeout(() => statusMessage.remove(), 5000);
 }
 
+function toggleLoading(isLoading) {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (isLoading) {
+        loadingOverlay.classList.remove('hidden');
+    } else {
+        loadingOverlay.classList.add('hidden');
+    }
+}
+
 async function loadAndDisplayRecentSheets() {
     state.isLoading = true;
     const listEl = document.getElementById('recent-sheets-list');
@@ -131,17 +140,23 @@ export function initializeUi() {
         }
     });
 
-    // Set up state listener for auth changes
+    // Set up state listener for auth and loading changes
     addStateListener((property, value) => {
-        if (property === 'isAuthenticated') {
-            updateUiForAuthState(value, state.user);
-            if (value === true) {
-                // User has just logged in, load their sheets
-                loadAndDisplayRecentSheets();
-            }
+        switch (property) {
+            case 'isAuthenticated':
+                updateUiForAuthState(value, state.user);
+                if (value === true) {
+                    // User has just logged in, load their sheets
+                    loadAndDisplayRecentSheets();
+                }
+                break;
+            case 'isLoading':
+                toggleLoading(value);
+                break;
         }
     });
 
     // Initial UI update based on current state
     updateUiForAuthState(state.isAuthenticated, state.user);
+    toggleLoading(state.isLoading);
 }

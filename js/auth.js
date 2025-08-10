@@ -2,7 +2,7 @@
  * Handles all authentication-related logic using Google Identity Services (GIS).
  */
 
-import { CONFIG } from './config.js';
+import { getClientId } from './config.js';
 import { state } from './state.js';
 import { loadGoogleApis } from './google-loader.js';
 
@@ -56,9 +56,10 @@ async function fetchUserProfile() {
 /**
  * Initializes the Google Identity Services token client.
  */
-function initializeTokenClient() {
+async function initializeTokenClient() {
+    const clientId = await getClientId();
     tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CONFIG.GOOGLE_CLIENT_ID,
+        client_id: clientId,
         scope: SCOPES,
         callback: handleTokenResponse,
     });
@@ -103,7 +104,10 @@ export async function initializeAuth() {
     await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
     await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
 
-    initializeTokenClient();
+    await initializeTokenClient();
+
+    // Attempt a silent sign-in on page load
+    tokenClient.requestAccessToken({ prompt: 'none' });
 
     console.log("Auth module initialized.");
 }

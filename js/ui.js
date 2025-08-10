@@ -3,12 +3,49 @@
  * This module keeps the UI logic separate from the business logic.
  */
 
-import { CONFIG } from './config.js';
-import { secureStorage } from './storage.js';
+import { getClientId, setClientId } from './config.js';
 import { state, addStateListener } from './state.js';
 import { signOut, handleSignIn } from './auth.js';
-import { createSheet, getAppCreatedSheets, showPicker } from './api.js';
+import { createSheet, getAppCreatedSheets, showPicker, getSheetData, appendRow } from './api.js';
+import { trackSheetView, checkForChanges } from './notifications.js';
 
+
+function renderSheetData(data) {
+    const table = document.getElementById('sheet-data-table');
+    table.innerHTML = ''; // Clear previous data
+
+    if (!data || !data.values || data.values.length === 0) {
+        table.innerHTML = '<tr><td>No data found in this sheet.</td></tr>';
+        return;
+    }
+
+    const values = data.values;
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    // Assuming the first row is the header
+    const headers = values[0];
+    headers.forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    // Starting from the second row for data
+    for (let i = 1; i < values.length; i++) {
+        const rowData = values[i];
+        const tr = document.createElement('tr');
+        rowData.forEach(cellData => {
+            const td = document.createElement('td');
+            td.textContent = cellData;
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+}
 
 function showStatusMessage(message, isError = false) {
     const statusContainer = document.getElementById('status-container');
@@ -32,7 +69,8 @@ async function refreshTrackedSheets() {
     state.isLoading = true;
     try {
         const sheets = await getAppCreatedSheets();
-        state.trackedSheets = sheets || [];
+        const sheetsWithNotifications = checkForChanges(sheets);
+        state.trackedSheets = sheetsWithNotifications || [];
         updateTrackedSheetsUI();
     } catch (error) {
         console.error('Failed to load app-created sheets:', error);
@@ -56,6 +94,9 @@ function updateTrackedSheetsUI() {
             const li = document.createElement('li');
             // Use textContent for security
             li.textContent = `${sheet.name} (Last modified: ${new Date(sheet.modifiedTime).toLocaleString()})`;
+            if (sheet.hasNotification) {
+                li.classList.add('has-notification');
+            }
             li.dataset.sheetId = sheet.id;
             listEl.appendChild(li);
         });
@@ -89,19 +130,16 @@ function updateUiForAuthState(isAuthenticated, user) {
 }
 
 
-function initializeApiConfig() {
+async function initializeApiConfig() {
     const clientIdInput = document.getElementById('google-client-id');
     const saveButton = document.getElementById('save-api-keys-button');
     const statusEl = document.getElementById('api-keys-status');
 
     // Load saved client id into input field on startup
-    const savedClientId = secureStorage.getItem('user_google_client_id');
-    if (savedClientId) {
-        clientIdInput.value = savedClientId;
-    }
+    clientIdInput.value = await getClientId();
 
     // Handle save button click
-    saveButton.addEventListener('click', () => {
+    saveButton.addEventListener('click', async () => {
         const newClientId = clientIdInput.value.trim();
 
         if (!newClientId) {
@@ -110,7 +148,7 @@ function initializeApiConfig() {
             return;
         }
 
-        CONFIG.userGoogleClientId = newClientId;
+        await setClientId(newClientId);
 
         statusEl.textContent = 'Client ID saved successfully! The app will use the new ID on the next reload.';
         statusEl.style.color = 'green';
@@ -121,20 +159,47 @@ function initializeApiConfig() {
     });
 }
 
-export function initializeUi() {
+export async function initializeUi() {
     console.log("UI module initialized.");
 
     // Initialize API config section
-    initializeApiConfig();
+    await initializeApiConfig();
 
     // Add auth-related event listeners
     const authButton = document.getElementById('auth-button');
     const signOutButton = document.getElementById('sign-out-button');
     const createSheetButton = document.getElementById('create-sheet-button');
     const pickerButton = document.getElementById('load-from-picker-button');
+    const trackedSheetsList = document.getElementById('recent-sheets-list');
+    const addRowButton = document.getElementById('add-row-button');
 
     if (authButton) authButton.addEventListener('click', handleSignIn);
     if (signOutButton) signOutButton.addEventListener('click', signOut);
+
+    if (trackedSheetsList) trackedSheetsList.addEventListener('click', async (event) => {
+        const targetLi = event.target.closest('li');
+        if (!targetLi || !targetLi.dataset.sheetId) return;
+
+        const sheetId = targetLi.dataset.sheetId;
+        trackSheetView(sheetId); // Mark as viewed
+        targetLi.classList.remove('has-notification'); // Immediately remove visual indicator
+
+        state.currentSheetId = sheetId;
+        state.isLoading = true;
+        document.getElementById('current-sheet-title').textContent = `Loading: ${targetLi.textContent.split('(')[0].trim()}`;
+
+        try {
+            const data = await getSheetData(sheetId);
+            renderSheetData(data);
+            document.getElementById('current-sheet-title').textContent = `Data for: ${targetLi.textContent.split('(')[0].trim()}`;
+        } catch (error) {
+            console.error(`Failed to get data for sheet ${sheetId}:`, error);
+            showStatusMessage(`Could not load data for sheet.`, true);
+            document.getElementById('current-sheet-title').textContent = 'Sheet Data';
+        } finally {
+            state.isLoading = false;
+        }
+    });
 
     if (pickerButton) pickerButton.addEventListener('click', async () => {
         try {
@@ -172,6 +237,36 @@ export function initializeUi() {
             } finally {
                 state.isLoading = false;
             }
+        }
+    });
+
+    if (addRowButton) addRowButton.addEventListener('click', async () => {
+        const sheetId = state.currentSheetId;
+        if (!sheetId) {
+            showStatusMessage("Please select a sheet first.", true);
+            return;
+        }
+        const input = document.getElementById('new-row-data');
+        const values = input.value.split(',').map(v => v.trim());
+
+        if (values.length === 0 || input.value.trim() === '') {
+            showStatusMessage("Please enter some data to add.", true);
+            return;
+        }
+
+        state.isLoading = true;
+        try {
+            await appendRow(sheetId, values);
+            showStatusMessage("Row added successfully!");
+            input.value = '';
+            // Refresh the data view
+            const data = await getSheetData(sheetId);
+            renderSheetData(data);
+        } catch (error) {
+            console.error("Failed to append row:", error);
+            showStatusMessage(`Could not add row: ${error.message}`, true);
+        } finally {
+            state.isLoading = false;
         }
     });
 

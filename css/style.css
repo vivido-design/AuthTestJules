@@ -140,6 +140,11 @@ label {
     background-color: #f9f9f9;
 }
 
+#recent-sheets-list li.has-notification {
+    font-weight: bold;
+    color: #1a73e8;
+}
+
 /* Loading Overlay */
 #loading-overlay {
     position: fixed;

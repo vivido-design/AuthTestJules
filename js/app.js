@@ -10,7 +10,7 @@ import { initializeUi } from './ui.js';
 async function main() {
     console.log("PWA Initializing...");
     try {
-        initializeUi();
+        await initializeUi();
         await initializeAuth();
         console.log("Application fully initialized.");
     } catch (error) {

@@ -84,3 +84,35 @@ export async function getSheetDetails(sheetId) {
     });
     return response.result;
 }
+
+/**
+ * Appends a row of values to a spreadsheet.
+ * @param {string} sheetId The ID of the spreadsheet.
+ * @param {Array<string>} values The values to append.
+ * @returns {Promise<Object>} The response from the API.
+ */
+export async function appendRow(sheetId, values) {
+    const response = await gapi.client.sheets.spreadsheets.values.append({
+        spreadsheetId: sheetId,
+        range: 'A1', // The API will append after the last row of the table that starts at A1
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+            values: [values],
+        },
+    });
+    return response.result;
+}
+
+/**
+ * Gets cell data from a spreadsheet.
+ * @param {string} sheetId The ID of the spreadsheet.
+ * @param {string} range The A1 notation of the range to retrieve.
+ * @returns {Promise<Object>} The value range object from the API.
+ */
+export async function getSheetData(sheetId, range = 'A1:Z1000') {
+    const response = await gapi.client.sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: range,
+    });
+    return response.result;
+}

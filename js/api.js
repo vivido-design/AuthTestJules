@@ -42,11 +42,10 @@ export async function getAppCreatedSheets() {
 
 /**
  * Shows the Google Picker UI to allow the user to select a spreadsheet.
- * @param {string} apiKey The Google Cloud API Key.
  * @param {string} accessToken The user's OAuth 2.0 access token.
  * @returns {Promise<Object>} A promise that resolves with the selected document's metadata.
  */
-export function showPicker(apiKey, accessToken) {
+export function showPicker(accessToken) {
     return new Promise((resolve, reject) => {
         const pickerCallback = (data) => {
             if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
@@ -67,7 +66,6 @@ export function showPicker(apiKey, accessToken) {
             .setAppId(CONFIG.GOOGLE_CLIENT_ID.split('-')[0]) // Use the number part of the client ID as App ID
             .setOAuthToken(accessToken)
             .addView(view)
-            .setDeveloperKey(apiKey)
             .setCallback(pickerCallback)
             .build();
 

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets PWA</title>
+
+    <!-- CSP for security -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' https://accounts.google.com https://apis.google.com https://www.gstatic.com;
+        style-src 'self' 'unsafe-inline' https://accounts.google.com;
+        frame-src 'self' https://accounts.google.com https://apis.google.com;
+        connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://sheets.googleapis.com https://www.googleapis.com;
+        img-src 'self' data: https:;
+        font-src 'self' data: https:;
+        object-src 'none';
+        base-uri 'self';
+        form-action 'self';
+    ">
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a73e8">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Header -->
+        <header>
+            <h1>Google Sheets PWA</h1>
+            <div id="user-info" class="hidden">
+                <img id="user-avatar" src="" alt="User Avatar">
+                <span id="user-name"></span>
+                <button id="sign-out-button">Sign Out</button>
+            </div>
+            <div id="notification-bell" class="hidden">
+                <button>🔔 <span id="notification-count">0</span></button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Authentication Section -->
+            <section id="auth-section">
+                <h2>Authentication</h2>
+                <button id="auth-button">Sign In with Google</button>
+                <p>Sign in to create and manage your sheets.</p>
+            </section>
+
+            <!-- Main Application Content (hidden until authenticated) -->
+            <div id="main-content" class="hidden">
+                <!-- Sheet Operations -->
+                <section id="sheet-operations">
+                    <h2>Sheet Operations</h2>
+                    <button id="create-sheet-button">Create New Sheet</button>
+                    <button id="load-from-picker-button">Open from Google Picker</button>
+                </section>
+
+                <!-- Recent Sheets -->
+                <section id="recent-sheets-section">
+                    <h2>Recent Sheets</h2>
+                    <ul id="recent-sheets-list">
+                        <!-- Recent sheets will be populated here by JavaScript -->
+                        <li>No recent sheets found.</li>
+                    </ul>
+                </section>
+
+                <!-- Data Display -->
+                <section id="data-display-section">
+                    <h2 id="current-sheet-title">Sheet Data</h2>
+                    <div id="sheet-data-container">
+                        <table id="sheet-data-table">
+                            <!-- Sheet data will be populated here -->
+                        </table>
+                    </div>
+                    <div id="add-data-form">
+                        <h3>Add New Row</h3>
+                        <input type="text" id="new-row-data" placeholder="Enter comma-separated values">
+                        <button id="add-row-button">Add Row</button>
+                    </div>
+                </section>
+            </div>
+
+            <!-- API Key Configuration -->
+            <section id="api-config-section">
+                <h2>API Configuration</h2>
+                <p>For advanced users: provide your own Google Cloud keys.</p>
+                <div>
+                    <label for="google-client-id">Google Client ID:</label>
+                    <input type="text" id="google-client-id" placeholder="Enter your Google Client ID">
+                </div>
+                <div>
+                    <label for="google-api-key">Google API Key:</label>
+                    <input type="text" id="google-api-key" placeholder="Enter your Google API Key">
+                </div>
+                <button id="save-api-keys-button">Save Keys</button>
+                <p id="api-keys-status"></p>
+            </section>
+        </main>
+
+        <!-- Status Messages -->
+        <div id="status-container"></div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="hidden">
+            <div class="spinner"></div>
+            <p id="loading-message">Loading...</p>
+        </div>
+    </div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+    <script src="js/app.js" type="module"></script>
+</body>
+</html>

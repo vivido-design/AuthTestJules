@@ -4,28 +4,11 @@
 
 import { CONFIG } from './config.js';
 import { state } from './state.js';
+import { loadGoogleApis } from './google-loader.js';
 
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
 
 let tokenClient;
-let gapiLoaded = false;
-let gsiLoaded = false;
-
-/**
- * Waits for the Google API (gapi) and Google Sign-In (gsi) scripts to load.
- */
-function checkGoogleLibraries() {
-    return new Promise((resolve) => {
-        const interval = setInterval(() => {
-            gapiLoaded = gapiLoaded || (window.gapi && window.gapi.client);
-            gsiLoaded = gsiLoaded || (window.google && window.google.accounts);
-            if (gapiLoaded && gsiLoaded) {
-                clearInterval(interval);
-                resolve();
-            }
-        }, 100);
-    });
-}
 
 /**
  * Callback for the GIS token client. Handles the response.
@@ -113,10 +96,9 @@ export function signOut() {
  * Main entry point for the auth module.
  */
 export async function initializeAuth() {
-    await checkGoogleLibraries();
-    console.log("Google libraries loaded.");
+    await loadGoogleApis();
 
-    // Load the GAPI client and discovery documents for Sheets and Drive APIs
+    // After the scripts are loaded, we can initialize the GAPI client and discovery docs
     await new Promise((resolve, reject) => gapi.load('client', {callback: resolve, onerror: reject}));
     await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
     await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');

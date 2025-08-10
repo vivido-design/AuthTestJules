@@ -7,11 +7,20 @@ import { initializeAuth } from './auth.js';
 import { initializeUi } from './ui.js';
 
 // Main function to initialize the application
-function main() {
+async function main() {
     console.log("PWA Initializing...");
-    initializeUi();
-    initializeAuth();
-    // More initialization logic will be added here.
+    try {
+        initializeUi();
+        await initializeAuth();
+        console.log("Application fully initialized.");
+    } catch (error) {
+        console.error("Failed to initialize the application:", error);
+        // Here you could show a global error message to the user
+        const statusContainer = document.getElementById('status-container');
+        if (statusContainer) {
+            statusContainer.innerHTML = '<p style="color: red;">Application failed to load. Please try again later.</p>';
+        }
+    }
 }
 
 // Register the service worker

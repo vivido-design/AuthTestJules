@@ -6,7 +6,7 @@ import { CONFIG } from './config.js';
 import { state } from './state.js';
 import { loadGoogleApis } from './google-loader.js';
 
-const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
 let tokenClient;
 
@@ -99,7 +99,7 @@ export async function initializeAuth() {
     await loadGoogleApis();
 
     // After the scripts are loaded, we can initialize the GAPI client and discovery docs
-    await new Promise((resolve, reject) => gapi.load('client', {callback: resolve, onerror: reject}));
+    await new Promise((resolve, reject) => gapi.load('client:picker', {callback: resolve, onerror: reject}));
     await gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4');
     await gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest');
 

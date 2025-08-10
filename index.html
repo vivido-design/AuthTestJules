@@ -55,9 +55,9 @@
                     <button id="load-from-picker-button">Open from Google Picker</button>
                 </section>
 
-                <!-- Recent Sheets -->
+                <!-- Tracked Sheets -->
                 <section id="recent-sheets-section">
-                    <h2>Recent Sheets</h2>
+                    <h2>Tracked Sheets</h2>
                     <ul id="recent-sheets-list">
                         <!-- Recent sheets will be populated here by JavaScript -->
                         <li>No recent sheets found.</li>
@@ -83,12 +83,16 @@
             <!-- API Key Configuration -->
             <section id="api-config-section">
                 <h2>API Configuration</h2>
-                <p>For advanced users: provide your own Google Cloud keys.</p>
+                <p>You can provide your own Google Cloud keys. An API Key is required for the 'Open from Google Picker' feature.</p>
                 <div>
                     <label for="google-client-id">Google Client ID:</label>
                     <input type="text" id="google-client-id" placeholder="Enter your Google Client ID">
                 </div>
-                <button id="save-api-keys-button">Save Client ID</button>
+                <div>
+                    <label for="google-api-key">Google API Key:</label>
+                    <input type="text" id="google-api-key" placeholder="Enter your Google API Key (for Picker)">
+                </div>
+                <button id="save-api-keys-button">Save Keys</button>
                 <p id="api-keys-status"></p>
             </section>
         </main>

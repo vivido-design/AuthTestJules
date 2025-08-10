@@ -10,7 +10,7 @@ const appState = {
     currentSheetId: null,
     isLoading: false,
     error: null,
-    // more state properties will be added here
+    trackedSheets: [], // Array of sheet objects {id, name, modifiedTime, ...}
 };
 
 // Simple state management with listeners for reactivity

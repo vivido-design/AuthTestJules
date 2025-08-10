@@ -7,7 +7,7 @@ import { CONFIG } from './config.js';
 import { secureStorage } from './storage.js';
 import { state, addStateListener } from './state.js';
 import { signOut, handleSignIn } from './auth.js';
-import { createSheet, getRecentSheets } from './api.js';
+import { createSheet, getAppCreatedSheets, showPicker } from './api.js';
 
 
 function showStatusMessage(message, isError = false) {
@@ -28,30 +28,41 @@ function toggleLoading(isLoading) {
     }
 }
 
-async function loadAndDisplayRecentSheets() {
+async function refreshTrackedSheets() {
     state.isLoading = true;
-    const listEl = document.getElementById('recent-sheets-list');
-    listEl.innerHTML = '<li>Loading recent sheets...</li>';
-
     try {
-        const sheets = await getRecentSheets();
-        if (sheets && sheets.length > 0) {
-            listEl.innerHTML = '';
-            sheets.forEach(sheet => {
-                const li = document.createElement('li');
-                li.textContent = `${sheet.name} (Last modified: ${new Date(sheet.modifiedTime).toLocaleString()})`;
-                li.dataset.sheetId = sheet.id;
-                listEl.appendChild(li);
-            });
-        } else {
-            listEl.innerHTML = '<li>No recent sheets found.</li>';
-        }
+        const sheets = await getAppCreatedSheets();
+        state.trackedSheets = sheets || [];
+        updateTrackedSheetsUI();
     } catch (error) {
-        console.error('Failed to load recent sheets:', error);
-        listEl.innerHTML = '<li>Error loading recent sheets.</li>';
-        showStatusMessage('Could not load recent sheets. Please check console.', true);
+        console.error('Failed to load app-created sheets:', error);
+        showStatusMessage('Could not load your sheets. Please check console.', true);
     } finally {
         state.isLoading = false;
+    }
+}
+
+function updateTrackedSheetsUI() {
+    const listEl = document.getElementById('recent-sheets-list');
+    const sheets = state.trackedSheets;
+
+    listEl.innerHTML = ''; // Clear the list
+
+    if (sheets && sheets.length > 0) {
+        // Sort by modification time descending
+        sheets.sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
+
+        sheets.forEach(sheet => {
+            const li = document.createElement('li');
+            // Use textContent for security
+            li.textContent = `${sheet.name} (Last modified: ${new Date(sheet.modifiedTime).toLocaleString()})`;
+            li.dataset.sheetId = sheet.id;
+            listEl.appendChild(li);
+        });
+    } else {
+        const li = document.createElement('li');
+        li.textContent = 'No tracked sheets. Create one or open one from the picker.';
+        listEl.appendChild(li);
     }
 }
 
@@ -80,18 +91,24 @@ function updateUiForAuthState(isAuthenticated, user) {
 
 function initializeApiConfig() {
     const clientIdInput = document.getElementById('google-client-id');
+    const apiKeyInput = document.getElementById('google-api-key');
     const saveButton = document.getElementById('save-api-keys-button');
     const statusEl = document.getElementById('api-keys-status');
 
-    // Load saved client id into input field on startup
+    // Load saved keys into input fields on startup
     const savedClientId = secureStorage.getItem('user_google_client_id');
+    const savedApiKey = secureStorage.getItem('user_google_api_key');
     if (savedClientId) {
         clientIdInput.value = savedClientId;
+    }
+    if (savedApiKey) {
+        apiKeyInput.value = savedApiKey;
     }
 
     // Handle save button click
     saveButton.addEventListener('click', () => {
         const newClientId = clientIdInput.value.trim();
+        const newApiKey = apiKeyInput.value.trim();
 
         if (!newClientId) {
             statusEl.textContent = 'Client ID cannot be empty.';
@@ -100,8 +117,9 @@ function initializeApiConfig() {
         }
 
         CONFIG.userGoogleClientId = newClientId;
+        CONFIG.userGoogleApiKey = newApiKey;
 
-        statusEl.textContent = 'Client ID saved successfully! The app will use the new ID on the next reload.';
+        statusEl.textContent = 'API keys saved successfully! The app will use these new keys on the next reload.';
         statusEl.style.color = 'green';
 
         setTimeout(() => {
@@ -120,9 +138,36 @@ export function initializeUi() {
     const authButton = document.getElementById('auth-button');
     const signOutButton = document.getElementById('sign-out-button');
     const createSheetButton = document.getElementById('create-sheet-button');
+    const pickerButton = document.getElementById('load-from-picker-button');
 
     if (authButton) authButton.addEventListener('click', handleSignIn);
     if (signOutButton) signOutButton.addEventListener('click', signOut);
+
+    if (pickerButton) pickerButton.addEventListener('click', async () => {
+        try {
+            const apiKey = CONFIG.GOOGLE_API_KEY;
+            const token = gapi.client.getToken().access_token;
+            if (!apiKey) {
+                showStatusMessage("API Key is not configured. Please set it in the API Configuration section.", true);
+                return;
+            }
+            const doc = await showPicker(apiKey, token);
+            // Add the picked sheet to our state if it's not already there
+            if (!state.trackedSheets.find(s => s.id === doc.id)) {
+                // We need more details than the picker provides, so fetch them
+                const sheetDetails = { id: doc.id, name: doc.name, modifiedTime: doc.lastEditedUtc, webViewLink: doc.url };
+                state.trackedSheets = [...state.trackedSheets, sheetDetails];
+                updateTrackedSheetsUI();
+            }
+            showStatusMessage(`Added "${doc.name}" to tracked sheets.`);
+        } catch (error) {
+            if (error.message !== "Picker was cancelled.") {
+                console.error("Picker Error:", error);
+                showStatusMessage(`Could not open picker: ${error.message}`, true);
+            }
+        }
+    });
+
     if (createSheetButton) createSheetButton.addEventListener('click', async () => {
         const title = prompt("Enter a title for the new sheet:", "PWA New Sheet");
         if (title) {
@@ -130,7 +175,9 @@ export function initializeUi() {
             try {
                 const sheet = await createSheet(title);
                 showStatusMessage(`Sheet "${sheet.properties.title}" created successfully!`);
-                await loadAndDisplayRecentSheets(); // Refresh the list
+                // Add the new sheet to the top of our state and refresh the UI
+                state.trackedSheets = [sheet, ...state.trackedSheets];
+                updateTrackedSheetsUI();
             } catch (error) {
                 console.error("Failed to create sheet:", error);
                 showStatusMessage(`Error creating sheet: ${error.message}`, true);
@@ -146,8 +193,12 @@ export function initializeUi() {
             case 'isAuthenticated':
                 updateUiForAuthState(value, state.user);
                 if (value === true) {
-                    // User has just logged in, load their sheets
-                    loadAndDisplayRecentSheets();
+                    // User has just logged in, load their app-created sheets
+                    refreshTrackedSheets();
+                } else {
+                    // User logged out, clear the sheet list
+                    state.trackedSheets = [];
+                    updateTrackedSheetsUI();
                 }
                 break;
             case 'isLoading':

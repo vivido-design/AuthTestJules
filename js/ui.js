@@ -71,24 +71,18 @@ function updateUiForAuthState(isAuthenticated, user) {
 
 function initializeApiConfig() {
     const clientIdInput = document.getElementById('google-client-id');
-    const apiKeyInput = document.getElementById('google-api-key');
     const saveButton = document.getElementById('save-api-keys-button');
     const statusEl = document.getElementById('api-keys-status');
 
-    // Load saved keys into input fields on startup
+    // Load saved client id into input field on startup
     const savedClientId = secureStorage.getItem('user_google_client_id');
-    const savedApiKey = secureStorage.getItem('user_google_api_key');
     if (savedClientId) {
         clientIdInput.value = savedClientId;
-    }
-    if (savedApiKey) {
-        apiKeyInput.value = savedApiKey;
     }
 
     // Handle save button click
     saveButton.addEventListener('click', () => {
         const newClientId = clientIdInput.value.trim();
-        const newApiKey = apiKeyInput.value.trim();
 
         if (!newClientId) {
             statusEl.textContent = 'Client ID cannot be empty.';
@@ -97,9 +91,8 @@ function initializeApiConfig() {
         }
 
         CONFIG.userGoogleClientId = newClientId;
-        CONFIG.userGoogleApiKey = newApiKey;
 
-        statusEl.textContent = 'API keys saved successfully! The app will use these new keys on the next reload.';
+        statusEl.textContent = 'Client ID saved successfully! The app will use the new ID on the next reload.';
         statusEl.style.color = 'green';
 
         setTimeout(() => {

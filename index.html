@@ -10,7 +10,7 @@
         default-src 'self';
         script-src 'self' https://accounts.google.com https://apis.google.com https://www.gstatic.com;
         style-src 'self' 'unsafe-inline' https://accounts.google.com;
-        frame-src 'self' https://accounts.google.com https://apis.google.com;
+        frame-src 'self' https://accounts.google.com https://apis.google.com https://content-sheets.googleapis.com;
         connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://sheets.googleapis.com https://www.googleapis.com;
         img-src 'self' data: https:;
         font-src 'self' data: https:;
@@ -88,11 +88,7 @@
                     <label for="google-client-id">Google Client ID:</label>
                     <input type="text" id="google-client-id" placeholder="Enter your Google Client ID">
                 </div>
-                <div>
-                    <label for="google-api-key">Google API Key:</label>
-                    <input type="text" id="google-api-key" placeholder="Enter your Google API Key">
-                </div>
-                <button id="save-api-keys-button">Save Keys</button>
+                <button id="save-api-keys-button">Save Client ID</button>
                 <p id="api-keys-status"></p>
             </section>
         </main>

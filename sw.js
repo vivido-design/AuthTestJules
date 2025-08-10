@@ -1,9 +1,16 @@
 const CACHE_NAME = 'google-sheets-pwa-cache-v1';
 const URLS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/app.js'
+  './',
+  './index.html',
+  './css/style.css',
+  './js/app.js',
+  './js/auth.js',
+  './js/api.js',
+  './js/ui.js',
+  './js/config.js',
+  './js/state.js',
+  './js/storage.js',
+  './manifest.json'
 ];
 
 self.addEventListener('install', event => {

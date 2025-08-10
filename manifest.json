@@ -6,26 +6,5 @@
     "scope": "./",
     "display": "standalone",
     "background_color": "#ffffff",
-    "theme_color": "#1a73e8",
-    "icons": [
-        {
-            "src": "images/icon-192x192.png",
-            "type": "image/png",
-            "sizes": "192x192"
-        },
-        {
-            "src": "images/icon-512x512.png",
-            "type": "image/png",
-            "sizes": "512x512"
-        }
-    ],
-    "shortcuts": [
-        {
-            "name": "Create New Sheet",
-            "short_name": "New Sheet",
-            "description": "Create a new spreadsheet",
-            "url": "/?action=new-sheet",
-            "icons": [{ "src": "images/shortcut-icon.png", "sizes": "96x96" }]
-        }
-    ]
+    "theme_color": "#1a73e8"
 }
